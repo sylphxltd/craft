@@ -98,7 +98,8 @@ export function current<T>(value: T): T {
 
 export function shallowCopy<T>(base: T): T {
   if (Array.isArray(base)) {
-    return base.slice() as any;
+    // Use Array.from - fastest method for copying large arrays
+    return Array.from(base) as any;
   }
   if (base && typeof base === "object") {
     const config = getConfig();
@@ -109,7 +110,8 @@ export function shallowCopy<T>(base: T): T {
       Object.defineProperties(copy, props);
       return copy;
     }
-    return Object.assign({}, base);
+    // Use spread operator for better performance
+    return { ...base } as T;
   }
   return base;
 }

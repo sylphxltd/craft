@@ -78,9 +78,13 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
 
           let wrapped = methods.get(prop as string);
           if (!wrapped) {
+            // Create optimized wrapper that avoids redundant operations
             wrapped = function (this: any, ...args: any[]) {
-              markChanged(state);
-              // markChanged already ensures state.copy exists
+              // Only mark changed if not already modified
+              if (!state.modified) {
+                markChanged(state);
+              }
+              // Apply directly on the copy
               return state.copy![prop].apply(state.copy, args);
             };
             methods.set(prop as string, wrapped);
