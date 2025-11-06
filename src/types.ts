@@ -2,11 +2,15 @@
  * Type utilities for Craft
  */
 
-export type Draft<T> = T extends object
-  ? {
-      -readonly [K in keyof T]: Draft<T[K]>;
-    }
-  : T;
+export type Draft<T> = T extends Map<infer K, infer V>
+  ? Map<K, V>
+  : T extends Set<infer V>
+    ? Set<V>
+    : T extends object
+      ? {
+          -readonly [K in keyof T]: Draft<T[K]>;
+        }
+      : T;
 
 export type Producer<T> = (draft: Draft<T>) => T | void;
 

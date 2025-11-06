@@ -112,12 +112,22 @@ describe("Edge cases and coverage", () => {
     expect(next.custom).toBe(instance);
   });
 
-  it("should handle Map and Set (non-draftable)", () => {
+  it("should handle Map and Set (now draftable)", () => {
     const map = new Map([["key", "value"]]);
     const set = new Set([1, 2, 3]);
 
-    expect(craft({ map }, () => {}).map).toBe(map);
-    expect(craft({ set }, () => {}).set).toBe(set);
+    // Map/Set are now draftable, so they get proxied
+    const nextMap = craft({ map }, (draft) => {
+      draft.map.set("key2", "value2");
+    });
+    expect(nextMap.map.size).toBe(2);
+    expect(map.size).toBe(1); // Original unchanged
+
+    const nextSet = craft({ set }, (draft) => {
+      draft.set.add(4);
+    });
+    expect(nextSet.set.size).toBe(4);
+    expect(set.size).toBe(3); // Original unchanged
   });
 
   it("should handle Date objects (non-draftable)", () => {

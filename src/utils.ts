@@ -3,6 +3,7 @@
  */
 
 import { getConfig } from "./config";
+import { finalizeMap, finalizeSet, getMapState, getSetState } from "./map-set";
 import { nothing } from "./nothing";
 
 const DRAFT_STATE = Symbol("craft-draft-state");
@@ -25,6 +26,7 @@ export function isDraft(value: any): boolean {
 export function isDraftable(value: any): boolean {
   if (!value || typeof value !== "object") return false;
   if (Array.isArray(value)) return true;
+  if (value instanceof Map || value instanceof Set) return true;
   const proto = Object.getPrototypeOf(value);
   return proto === null || proto === Object.prototype;
 }
@@ -84,7 +86,18 @@ export function original<T>(value: T): T | undefined {
  * ```
  */
 export function current<T>(value: T): T {
-  if (!isDraft(value)) return value;
+  if (!isDraft(value)) {
+    // Check if it's a Map/Set proxy
+    const mapState = getMapState(value);
+    if (mapState) {
+      return (mapState.copy ?? mapState.base) as T;
+    }
+    const setState = getSetState(value);
+    if (setState) {
+      return (setState.copy ?? setState.base) as T;
+    }
+    return value;
+  }
 
   const state = getState(value);
   if (!state) return value;
@@ -96,6 +109,18 @@ export function current<T>(value: T): T {
 
   // Recursively finalize nested values
   each(result, (key, val) => {
+    // Handle Map/Set proxies
+    const mapState = getMapState(val);
+    if (mapState) {
+      result[key] = mapState.copy ?? mapState.base;
+      return;
+    }
+    const setState = getSetState(val);
+    if (setState) {
+      result[key] = setState.copy ?? setState.base;
+      return;
+    }
+
     if (isDraft(val)) {
       result[key] = current(val);
     }
@@ -211,6 +236,18 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
         const value = result[i];
         if (value === nothing) continue;
 
+        // Check for Map/Set proxies first
+        const mapState = getMapState(value);
+        if (mapState) {
+          filtered.push(finalizeMap(mapState));
+          continue;
+        }
+        const setState = getSetState(value);
+        if (setState) {
+          filtered.push(finalizeSet(setState));
+          continue;
+        }
+
         if (isDraft(value)) {
           const childState = getState(value);
           filtered.push(childState ? finalize(childState, shouldFreeze) : value);
@@ -224,6 +261,19 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
     // Only drafts - finalize in place
     for (let i = 0; i < result.length; i++) {
       const value = result[i];
+
+      // Check for Map/Set proxies first
+      const mapState = getMapState(value);
+      if (mapState) {
+        result[i] = finalizeMap(mapState);
+        continue;
+      }
+      const setState = getSetState(value);
+      if (setState) {
+        result[i] = finalizeSet(setState);
+        continue;
+      }
+
       if (isDraft(value)) {
         const childState = getState(value);
         if (childState) {
@@ -242,6 +292,19 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]!;
     const value = result[key];
+
+    // Check for Map/Set proxies first
+    const mapState = getMapState(value);
+    if (mapState) {
+      result[key] = finalizeMap(mapState);
+      continue;
+    }
+    const setState = getSetState(value);
+    if (setState) {
+      result[key] = finalizeSet(setState);
+      continue;
+    }
+
     if (isDraft(value)) {
       const childState = getState(value);
       if (childState) {

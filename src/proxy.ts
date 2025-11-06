@@ -7,6 +7,7 @@
  * 4. Optimized property descriptor handling
  */
 
+import { createMapProxy, createSetProxy, isMap, isSet } from "./map-set";
 import { nothing } from "./nothing";
 import {
   DRAFT_STATE,
@@ -26,6 +27,14 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
   // Fast path: return non-draftable values as-is
   if (!isDraftable(base)) {
     return base;
+  }
+
+  // Handle Map and Set with dedicated proxies
+  if (isMap(base)) {
+    return createMapProxy(base, parent);
+  }
+  if (isSet(base)) {
+    return createSetProxy(base, parent);
   }
 
   const isArray = Array.isArray(base);
