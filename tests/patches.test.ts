@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetConfig } from "../src/config";
 import { type Patch, applyPatches } from "../src/patches";
-import { produceWithPatches } from "../src/produce-with-patches";
+import { craftWithPatches } from "../src/craft-with-patches";
 
-describe("Patches - produceWithPatches", () => {
+describe("Patches - craftWithPatches", () => {
   beforeEach(() => {
     resetConfig();
   });
@@ -12,7 +12,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for property updates", () => {
       const base = { count: 0, name: "Alice" };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.count = 1;
       });
 
@@ -36,7 +36,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for property additions", () => {
       const base = { count: 0 };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         (draft as any).name = "Bob";
       });
 
@@ -59,7 +59,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for property deletions", () => {
       const base = { count: 0, name: "Alice" };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         // biome-ignore lint/performance/noDelete: Testing delete behavior
         delete (draft as any).name;
       });
@@ -83,7 +83,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate multiple patches for multiple changes", () => {
       const base = { count: 0, name: "Alice" };
 
-      const [next, patches] = produceWithPatches(base, (draft) => {
+      const [next, patches] = craftWithPatches(base, (draft) => {
         draft.count = 5;
         draft.name = "Bob";
       });
@@ -109,7 +109,7 @@ describe("Patches - produceWithPatches", () => {
         user: { name: "Alice", age: 25 },
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.user.age = 26;
       });
 
@@ -135,7 +135,7 @@ describe("Patches - produceWithPatches", () => {
         user: { name: "Alice", age: 25 },
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.user = { name: "Bob", age: 30 };
       });
 
@@ -171,7 +171,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for array element updates", () => {
       const base = { items: [1, 2, 3] };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.items[1] = 5;
       });
 
@@ -195,7 +195,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for array push", () => {
       const base = { items: [1, 2] };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.items.push(3);
       });
 
@@ -218,7 +218,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for array pop", () => {
       const base = { items: [1, 2, 3] };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.items.pop();
       });
 
@@ -241,7 +241,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate patches for array unshift", () => {
       const base = { items: [2, 3] };
 
-      const [next, patches] = produceWithPatches(base, (draft) => {
+      const [next, patches] = craftWithPatches(base, (draft) => {
         draft.items.unshift(1);
       });
 
@@ -263,7 +263,7 @@ describe("Patches - produceWithPatches", () => {
         ],
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.matrix[1]![1] = 10;
       });
 
@@ -291,7 +291,7 @@ describe("Patches - produceWithPatches", () => {
         data: new Map([["a", 1]]),
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.data.set("b", 2);
       });
 
@@ -319,7 +319,7 @@ describe("Patches - produceWithPatches", () => {
         ]),
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.data.delete("b");
       });
 
@@ -344,7 +344,7 @@ describe("Patches - produceWithPatches", () => {
         data: new Map([["a", 1]]),
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.data.set("a", 10);
       });
 
@@ -372,7 +372,7 @@ describe("Patches - produceWithPatches", () => {
         data: new Set([1, 2]),
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.data.add(3);
       });
 
@@ -398,7 +398,7 @@ describe("Patches - produceWithPatches", () => {
         data: new Set([1, 2, 3]),
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.data.delete(2);
       });
 
@@ -424,7 +424,7 @@ describe("Patches - produceWithPatches", () => {
     it("should generate empty patches when no changes are made", () => {
       const base = { count: 0 };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, () => {
+      const [next, patches, inversePatches] = craftWithPatches(base, () => {
         // No changes
       });
 
@@ -464,7 +464,7 @@ describe("Patches - applyPatches", () => {
   it("should apply inverse patches to undo changes", () => {
     const base = { count: 0 };
 
-    const [next, _patches, inversePatches] = produceWithPatches(base, (draft) => {
+    const [next, _patches, inversePatches] = craftWithPatches(base, (draft) => {
       draft.count = 5;
     });
 
@@ -541,7 +541,7 @@ describe("Patches - applyPatches", () => {
       items: [1, 2, 3],
     };
 
-    const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+    const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
       draft.count = 10;
       draft.user.age = 26;
       draft.items.push(4);

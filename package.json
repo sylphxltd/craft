@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/craft",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A lightweight, functional, and blazingly fast alternative to immer for immutable state updates",
   "type": "module",
   "main": "./dist/index.js",

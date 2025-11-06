@@ -278,9 +278,9 @@ All Map and Set methods are fully supported:
 Generate and apply patches to track state mutations for advanced use cases like undo/redo and time-travel debugging:
 
 ```typescript
-import { produceWithPatches, applyPatches } from "@sylphx/craft";
+import { craftWithPatches, applyPatches } from "@sylphx/craft";
 
-const [nextState, patches, inversePatches] = produceWithPatches(state, (draft) => {
+const [nextState, patches, inversePatches] = craftWithPatches(state, (draft) => {
   draft.count = 5;
   draft.user.name = "Bob";
   draft.items.push({ id: 3 });

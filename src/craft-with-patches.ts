@@ -1,5 +1,5 @@
 /**
- * Produce with patches - generates state along with patches describing changes
+ * Craft with patches - generates state along with patches describing changes
  */
 
 import { createDraft, finishDraft } from "./manual";
@@ -7,7 +7,7 @@ import { type Patch, generatePatches } from "./patches";
 import type { Producer } from "./types";
 
 /**
- * Produce a new state and generate patches describing the changes
+ * Craft a new state and generate patches describing the changes
  *
  * @param base - The base state
  * @param producer - Function that modifies the draft
@@ -15,7 +15,7 @@ import type { Producer } from "./types";
  *
  * @example
  * ```ts
- * const [nextState, patches, inversePatches] = produceWithPatches(state, draft => {
+ * const [nextState, patches, inversePatches] = craftWithPatches(state, draft => {
  *   draft.count++;
  * });
  *
@@ -23,7 +23,7 @@ import type { Producer } from "./types";
  * // inversePatches: [{ op: 'replace', path: ['count'], value: 0 }]
  * ```
  */
-export function produceWithPatches<T>(base: T, producer: Producer<T>): [T, Patch[], Patch[]] {
+export function craftWithPatches<T>(base: T, producer: Producer<T>): [T, Patch[], Patch[]] {
   const draft = createDraft(base) as any;
   const result = producer(draft);
   const nextState = result !== undefined ? result : finishDraft(draft);

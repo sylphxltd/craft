@@ -5,7 +5,7 @@ import {
 } from "immer";
 import { bench, describe } from "vitest";
 import { applyPatches } from "../src/patches";
-import { produceWithPatches } from "../src/produce-with-patches";
+import { craftWithPatches } from "../src/craft-with-patches";
 
 // Enable immer patches plugin
 enablePatches();
@@ -17,7 +17,7 @@ describe("Patches generation - Simple updates", () => {
   };
 
   bench("craft - generate patches (simple update)", () => {
-    produceWithPatches(baseState, (draft) => {
+    craftWithPatches(baseState, (draft) => {
       draft.count = 10;
       draft.user.age = 26;
     });
@@ -37,7 +37,7 @@ describe("Patches generation - Array operations", () => {
   };
 
   bench("craft - generate patches (array mutations)", () => {
-    produceWithPatches(baseState, (draft) => {
+    craftWithPatches(baseState, (draft) => {
       draft.items.push(6);
       draft.items[0] = 10;
     });
@@ -64,7 +64,7 @@ describe("Patches generation - Nested updates", () => {
   };
 
   bench("craft - generate patches (nested)", () => {
-    produceWithPatches(baseState, (draft) => {
+    craftWithPatches(baseState, (draft) => {
       draft.level1.level2.level3.value = 100;
       draft.level1.level2.level3.items.push(4);
     });
@@ -88,7 +88,7 @@ describe("Patches generation - Map/Set operations", () => {
   };
 
   bench("craft - generate patches (Map/Set)", () => {
-    produceWithPatches(baseState, (draft) => {
+    craftWithPatches(baseState, (draft) => {
       draft.data.set("c", 3);
       draft.tags.add(4);
     });
@@ -109,7 +109,7 @@ describe("Patches application", () => {
     items: [1, 2, 3],
   };
 
-  const craftPatches = produceWithPatches(baseState, (draft) => {
+  const craftPatches = craftWithPatches(baseState, (draft) => {
     draft.count = 10;
     draft.user.age = 26;
     draft.items.push(4);
@@ -140,7 +140,7 @@ describe("Patches roundtrip (generate + apply)", () => {
   };
 
   bench("craft - patches roundtrip", () => {
-    const [_nextState, patches] = produceWithPatches(baseState, (draft) => {
+    const [_nextState, patches] = craftWithPatches(baseState, (draft) => {
       draft.users[0]!.active = false;
       draft.users[1]!.name = "Robert";
       draft.users.push({ id: 4, name: "David", active: true });
@@ -168,12 +168,12 @@ describe("Undo/Redo simulation", () => {
   };
 
   bench("craft - undo/redo with inverse patches", () => {
-    const [next1, _patches1, _inverse1] = produceWithPatches(baseState, (draft) => {
+    const [next1, _patches1, _inverse1] = craftWithPatches(baseState, (draft) => {
       draft.editor.content = "Hello World!";
       draft.editor.cursor = 12;
     });
 
-    const [next2, patches2, inverse2] = produceWithPatches(next1, (draft) => {
+    const [next2, patches2, inverse2] = craftWithPatches(next1, (draft) => {
       draft.editor.content = "Hello World!!";
       draft.editor.cursor = 13;
     });
@@ -214,7 +214,7 @@ describe("Large state patches", () => {
   const largeState = createLargeState();
 
   bench("craft - patches for large state", () => {
-    produceWithPatches(largeState, (draft) => {
+    craftWithPatches(largeState, (draft) => {
       draft.items[10]!.value = 999;
       draft.items[50]!.name = "Updated Item";
       draft.items.push({ id: 100, name: "New Item", value: 1000 });

@@ -4,7 +4,7 @@ import { craft } from "../src/craft";
 import { createDraft, finishDraft } from "../src/manual";
 import { nothing } from "../src/nothing";
 import { applyPatches, createPatchListener } from "../src/patches";
-import { produceWithPatches } from "../src/produce-with-patches";
+import { craftWithPatches } from "../src/craft-with-patches";
 import { current, freeze, peek } from "../src/utils";
 
 describe("Coverage - Edge Cases", () => {
@@ -101,7 +101,7 @@ describe("Coverage - Edge Cases", () => {
         value: "string",
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         (draft as any).value = 123; // Change from string to number
       });
 
@@ -127,7 +127,7 @@ describe("Coverage - Edge Cases", () => {
         value: null,
       };
 
-      const [next, patches] = produceWithPatches(base, (draft) => {
+      const [next, patches] = craftWithPatches(base, (draft) => {
         (draft as any).value = { nested: "object" };
       });
 
@@ -146,7 +146,7 @@ describe("Coverage - Edge Cases", () => {
         value: [1, 2, 3],
       };
 
-      const [next, patches] = produceWithPatches(base, (draft) => {
+      const [next, patches] = craftWithPatches(base, (draft) => {
         (draft as any).value = { count: 3 };
       });
 
@@ -478,7 +478,7 @@ describe("Coverage - Edge Cases", () => {
         ],
       };
 
-      const [next, patches] = produceWithPatches(base, (draft) => {
+      const [next, patches] = craftWithPatches(base, (draft) => {
         // Modify Map
         const user1 = draft.users.get("user1");
         if (user1) {
@@ -513,7 +513,7 @@ describe("Coverage - Edge Cases", () => {
         },
       };
 
-      const [next, patches, inversePatches] = produceWithPatches(base, (draft) => {
+      const [next, patches, inversePatches] = craftWithPatches(base, (draft) => {
         draft.config.get("database")!.port = 5433;
         draft.features.add("monitoring");
         draft.metadata.tags.push("stable");
