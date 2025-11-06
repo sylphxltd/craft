@@ -20,15 +20,6 @@ import {
   shallowCopy,
 } from "./utils";
 
-// Store child drafts per parent state
-const childDrafts = new WeakMap<DraftState, Map<string | symbol, any>>();
-
-// Export for use in utils.ts
-export { childDrafts };
-
-// Cache wrapped array methods per state to avoid recreating them
-const methodCache = new WeakMap<DraftState, Map<string, Function>>();
-
 // Fast path checks
 const ARRAY_METHODS = new Set(["push", "pop", "shift", "unshift", "splice", "sort", "reverse"]);
 
@@ -62,30 +53,14 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
 
       // Fast path: primitives and methods
       if (typeof value !== "object" || value === null) {
-        // Wrap array mutating methods with caching
+        // Wrap array mutating methods
         if (isArray && typeof value === "function" && ARRAY_METHODS.has(prop as string)) {
-          // Optimized caching: avoid double Map lookup
-          const methods = methodCache.get(state) ?? (() => {
-            const m = new Map();
-            methodCache.set(state, m);
-            return m;
-          })();
-
-          const cached = methods.get(prop as string);
-          if (cached) return cached;
-
-          // Create optimized wrapper that avoids redundant operations
-          const wrapped = function (this: any, ...args: any[]) {
-            // Only mark changed if not already modified
-            if (!state.modified) {
-              markChanged(state);
-            }
-            // Apply directly on the copy
-            return state.copy![prop].apply(state.copy, args);
-          };
-          methods.set(prop as string, wrapped);
-
-          return wrapped;
+          // Mark changed before method execution
+          if (!state.modified) {
+            markChanged(state);
+          }
+          // Return method from copy
+          return state.copy![prop];
         }
         return value;
       }
@@ -100,19 +75,17 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
         // immer-inspired optimization: only create draft if value is from base
         // This avoids creating copies for values that were already replaced
         if (value === state.base[prop]) {
-          // Optimized: avoid double Map lookup
-          const children = childDrafts.get(state) ?? (() => {
-            const c = new Map();
-            childDrafts.set(state, c);
-            return c;
-          })();
+          // Use drafts map stored on state - faster than WeakMap lookup
+          if (!state.drafts) {
+            state.drafts = new Map();
+          }
 
-          const cached = children.get(prop);
+          const cached = state.drafts.get(prop);
           if (cached) return cached;
 
           // Create new child draft
           const childDraft = createProxy(value, state);
-          children.set(prop, childDraft);
+          state.drafts.set(prop, childDraft);
 
           // prepareCopy - ensure parent has a copy before storing child draft
           if (!state.copy) {
@@ -149,10 +122,7 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
         }
 
         // Clear child draft
-        const children = childDrafts.get(state);
-        if (children) {
-          children.delete(prop);
-        }
+        state.drafts?.delete(prop);
 
         return true;
       }
@@ -171,10 +141,7 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
       state.copy![prop] = actualValue;
 
       // Clear child draft for this property since it's being replaced
-      const children = childDrafts.get(state);
-      if (children) {
-        children.delete(prop);
-      }
+      state.drafts?.delete(prop);
 
       return true;
     },
@@ -184,10 +151,7 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
       delete state.copy![prop];
 
       // Clear child draft
-      const children = childDrafts.get(state);
-      if (children) {
-        children.delete(prop);
-      }
+      state.drafts?.delete(prop);
 
       return true;
     },

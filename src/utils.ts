@@ -15,6 +15,7 @@ export interface DraftState {
   parent: DraftState | null;
   revoked: boolean;
   finalized: boolean; // immer-inspired: prevent duplicate finalization
+  drafts?: Map<string | symbol, any>; // Store child drafts directly on state
 }
 
 export function isDraft(value: any): boolean {
@@ -106,8 +107,8 @@ export function current<T>(value: T): T {
 
 export function shallowCopy<T>(base: T): T {
   if (Array.isArray(base)) {
-    // Use Array.prototype.slice.call() - immer's optimized method
-    return Array.prototype.slice.call(base) as any;
+    // Direct slice() is faster than .call() indirection
+    return base.slice() as any;
   }
   if (base && typeof base === "object") {
     const config = getConfig();
@@ -235,31 +236,16 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
   }
 
   // Finalize object properties recursively
-  // Pre-scan to avoid unnecessary work
-  let hasDrafts = false;
-  for (const key in result) {
-    if (Object.prototype.hasOwnProperty.call(result, key)) {
-      if (isDraft(result[key])) {
-        hasDrafts = true;
-        break;
-      }
-    }
-  }
+  // Single-pass: combine scan and finalize to avoid double iteration
+  const keys = Object.keys(result);
 
-  // Fast path: no drafts to finalize
-  if (!hasDrafts) {
-    return shouldFreeze ? freeze(result, false) : result;
-  }
-
-  // Finalize draft properties
-  for (const key in result) {
-    if (Object.prototype.hasOwnProperty.call(result, key)) {
-      const value = result[key];
-      if (isDraft(value)) {
-        const childState = getState(value);
-        if (childState) {
-          result[key] = finalize(childState, shouldFreeze);
-        }
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]!;
+    const value = result[key];
+    if (isDraft(value)) {
+      const childState = getState(value);
+      if (childState) {
+        result[key] = finalize(childState, shouldFreeze);
       }
     }
   }
