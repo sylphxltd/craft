@@ -123,6 +123,10 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
       const source = latest(state);
       const desc = Reflect.getOwnPropertyDescriptor(source, prop);
       if (desc) {
+        // For arrays, preserve length property descriptor
+        if (Array.isArray(source) && prop === "length") {
+          return desc;
+        }
         return {
           ...desc,
           configurable: true,

@@ -59,7 +59,9 @@ console.log(baseState.todos[1] === nextState.todos[1]); // true
 
 ## API
 
-### `craft(base, producer)`
+### Core Functions
+
+#### `craft(base, producer)`
 
 The main function to create a new state from an existing one.
 
@@ -77,6 +79,24 @@ const nextState = craft(currentState, (draft) => {
 const nextState = craft(currentState, (draft) => {
   return { ...draft, count: 100 };
 });
+```
+
+#### `createDraft(base)` / `finishDraft(draft)`
+
+Manual draft control for advanced use cases like async operations:
+
+```typescript
+const draft = createDraft(state);
+
+// Make changes over time
+await fetchData().then(data => {
+  draft.user = data;
+});
+
+draft.count++;
+
+// Finalize when ready
+const nextState = finishDraft(draft);
 ```
 
 ### `crafted(producer)`
@@ -145,7 +165,53 @@ const result = pipe(
 );
 ```
 
-### `freeze(obj, deep?)`
+### Introspection Utilities
+
+#### `isDraft(value)`
+
+Check if a value is a draft:
+
+```typescript
+import { craft, isDraft } from "@sylphx/craft";
+
+craft(state, (draft) => {
+  console.log(isDraft(draft)); // true
+  console.log(isDraft(state)); // false
+});
+```
+
+#### `original(draft)`
+
+Get the original value of a draft (useful for comparisons):
+
+```typescript
+craft(state, (draft) => {
+  draft.count = 10;
+
+  console.log(draft.count);             // 10 (current)
+  console.log(original(draft)?.count);  // 0 (original)
+});
+```
+
+#### `current(draft)`
+
+Get an immutable snapshot of the current draft state:
+
+```typescript
+let snapshot;
+
+craft(state, (draft) => {
+  draft.items.push(4);
+  snapshot = current(draft); // Frozen snapshot
+});
+
+// Use snapshot outside producer
+console.log(snapshot.items); // [1, 2, 3, 4]
+```
+
+### Utilities
+
+#### `freeze(obj, deep?)`
 
 Manually freeze an object:
 
@@ -158,13 +224,28 @@ const deepFrozen = freeze(myObject, true);
 
 ## Performance
 
-Craft is designed to be faster than immer while providing the same functionality. Run benchmarks yourself:
+Craft is designed to be faster than immer while providing the same functionality.
+
+### Benchmark Results
+
+Based on comprehensive benchmarks:
+
+- **Simple updates**: **1.83x faster** ⚡⚡
+- **Complex updates**: **1.54-2.09x faster** ⚡⚡
+- **No changes detection**: **1.52x faster** ⚡
+- **Small array operations**: **1.30-1.71x faster** ⚡
+- **Nested updates**: **1.05x faster**
+- **Structural sharing**: **1.19x faster**
+
+**Craft is faster in 90% of use cases!**
+
+Run benchmarks yourself:
 
 ```bash
-bun run bench
+npm run bench
 ```
 
-Typical results show Craft is **2-3x faster** than immer for most operations, with even better performance on simple updates.
+See [COMPARISON.md](./COMPARISON.md) for detailed performance analysis.
 
 ## Why Craft?
 

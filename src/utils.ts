@@ -32,6 +32,67 @@ export function latest(state: DraftState): any {
   return state.copy ?? state.base;
 }
 
+/**
+ * Get the original value of a draft
+ * Useful for comparisons inside a producer function
+ *
+ * @param value - A draft or regular value
+ * @returns The original base value, or the value itself if not a draft
+ *
+ * @example
+ * ```ts
+ * craft(state, (draft) => {
+ *   draft.count = 10;
+ *   console.log(original(draft)?.count); // 0 (original value)
+ *   console.log(draft.count); // 10 (current value)
+ * });
+ * ```
+ */
+export function original<T>(value: T): T | undefined {
+  if (!isDraft(value)) return undefined;
+  const state = getState(value);
+  return state?.base;
+}
+
+/**
+ * Get a frozen immutable snapshot of the current draft state
+ * Useful for accessing the draft state outside the producer
+ *
+ * @param value - A draft value
+ * @returns An immutable snapshot of the current state
+ *
+ * @example
+ * ```ts
+ * craft(state, (draft) => {
+ *   draft.items.push(4);
+ *   const snapshot = current(draft);
+ *   console.log(snapshot.items); // [1, 2, 3, 4]
+ *   // snapshot is immutable and can be safely shared
+ * });
+ * ```
+ */
+export function current<T>(value: T): T {
+  if (!isDraft(value)) return value;
+
+  const state = getState(value);
+  if (!state) return value;
+
+  const currentState = latest(state);
+
+  // Create a deep copy with all nested drafts finalized
+  const result = shallowCopy(currentState);
+
+  // Recursively finalize nested values
+  each(result, (key, val) => {
+    if (isDraft(val)) {
+      result[key] = current(val);
+    }
+  });
+
+  // Return frozen snapshot
+  return freeze(result, true);
+}
+
 export function shallowCopy<T>(base: T): T {
   if (Array.isArray(base)) {
     return base.slice() as any;
