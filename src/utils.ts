@@ -14,6 +14,7 @@ export interface DraftState {
   modified: boolean;
   parent: DraftState | null;
   revoked: boolean;
+  finalized: boolean; // immer-inspired: prevent duplicate finalization
 }
 
 export function isDraft(value: any): boolean {
@@ -153,14 +154,31 @@ export function freeze<T>(obj: T, deep = false): T {
 }
 
 export function finalize(state: DraftState, autoFreeze?: boolean): any {
+  // immer-inspired: prevent duplicate finalization
+  if (state.finalized) {
+    return state.copy ?? state.base;
+  }
+
   // Use config if autoFreeze not explicitly provided
   if (autoFreeze === undefined) {
     autoFreeze = getConfig().autoFreeze;
   }
 
   if (!state.modified) {
-    return state.base;
+    // immer-inspired: check if already frozen
+    const value = state.base;
+    if (Object.isFrozen(value)) {
+      return value;
+    }
+    // Freeze and return base
+    if (autoFreeze) {
+      freeze(value, false);
+    }
+    return value;
   }
+
+  // Mark as finalized before processing
+  state.finalized = true;
 
   const result = state.copy!;
   const isArray = Array.isArray(result);

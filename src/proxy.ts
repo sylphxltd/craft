@@ -54,6 +54,7 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
     modified: false,
     parent,
     revoked: false,
+    finalized: false,
   };
 
   const target = isArray ? [] : ({} as any);
