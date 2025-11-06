@@ -7,6 +7,7 @@
  * 4. Optimized property descriptor handling
  */
 
+import { nothing } from "./nothing";
 import {
   DRAFT_STATE,
   type DraftState,
@@ -18,7 +19,6 @@ import {
   peek,
   shallowCopy,
 } from "./utils";
-import { nothing } from "./nothing";
 
 // Store child drafts per parent state
 const childDrafts = new WeakMap<DraftState, Map<string | symbol, any>>();
@@ -30,15 +30,7 @@ export { childDrafts };
 const methodCache = new WeakMap<DraftState, Map<string, Function>>();
 
 // Fast path checks
-const ARRAY_METHODS = new Set([
-  "push",
-  "pop",
-  "shift",
-  "unshift",
-  "splice",
-  "sort",
-  "reverse",
-]);
+const ARRAY_METHODS = new Set(["push", "pop", "shift", "unshift", "splice", "sort", "reverse"]);
 
 export function createProxy(base: any, parent: DraftState | null = null): any {
   // Fast path: return non-draftable values as-is

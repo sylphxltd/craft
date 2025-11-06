@@ -2,8 +2,8 @@
  * Utility functions for Craft
  */
 
-import { nothing } from "./nothing";
 import { getConfig } from "./config";
+import { nothing } from "./nothing";
 
 const DRAFT_STATE = Symbol("craft-draft-state");
 const PROXY_TARGET = Symbol("craft-proxy-target");
@@ -160,9 +160,7 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
   }
 
   // Use config if autoFreeze not explicitly provided
-  if (autoFreeze === undefined) {
-    autoFreeze = getConfig().autoFreeze;
-  }
+  const shouldFreeze = autoFreeze ?? getConfig().autoFreeze;
 
   if (!state.modified) {
     // immer-inspired: check if already frozen
@@ -171,7 +169,7 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
       return value;
     }
     // Freeze and return base
-    if (autoFreeze) {
+    if (shouldFreeze) {
       freeze(value, false);
     }
     return value;
@@ -202,7 +200,7 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
 
     // Fast path: no nothing, no drafts - just freeze
     if (!hasNothing && !hasDrafts) {
-      return autoFreeze ? freeze(result, false) : result;
+      return shouldFreeze ? freeze(result, false) : result;
     }
 
     // If we have nothing symbols, filter while finalizing drafts
@@ -214,12 +212,12 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
 
         if (isDraft(value)) {
           const childState = getState(value);
-          filtered.push(childState ? finalize(childState, autoFreeze) : value);
+          filtered.push(childState ? finalize(childState, shouldFreeze) : value);
         } else {
           filtered.push(value);
         }
       }
-      return autoFreeze ? freeze(filtered, false) : filtered;
+      return shouldFreeze ? freeze(filtered, false) : filtered;
     }
 
     // Only drafts - finalize in place
@@ -228,12 +226,12 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
       if (isDraft(value)) {
         const childState = getState(value);
         if (childState) {
-          result[i] = finalize(childState, autoFreeze);
+          result[i] = finalize(childState, shouldFreeze);
         }
       }
     }
 
-    return autoFreeze ? freeze(result, false) : result;
+    return shouldFreeze ? freeze(result, false) : result;
   }
 
   // Finalize object properties recursively
@@ -250,7 +248,7 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
 
   // Fast path: no drafts to finalize
   if (!hasDrafts) {
-    return autoFreeze ? freeze(result, false) : result;
+    return shouldFreeze ? freeze(result, false) : result;
   }
 
   // Finalize draft properties
@@ -260,13 +258,13 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
       if (isDraft(value)) {
         const childState = getState(value);
         if (childState) {
-          result[key] = finalize(childState, autoFreeze);
+          result[key] = finalize(childState, shouldFreeze);
         }
       }
     }
   }
 
-  if (autoFreeze) {
+  if (shouldFreeze) {
     freeze(result, false);
   }
 

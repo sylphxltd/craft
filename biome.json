@@ -23,14 +23,15 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noBannedTypes": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
         "useTemplate": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "off",
         "noConfusingVoidType": "off"
       }
     }

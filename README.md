@@ -311,8 +311,6 @@ Run benchmarks yourself:
 npm run bench
 ```
 
-See [COMPARISON.md](./COMPARISON.md) for detailed performance analysis.
-
 ## Why Craft?
 
 **vs Manual Immutable Updates**
