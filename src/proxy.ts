@@ -56,33 +56,34 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
       // Fast path: DRAFT_STATE symbol
       if (prop === DRAFT_STATE) return state;
 
-      const source = latest(state);
+      // Inline latest() for better performance
+      const source = state.copy ?? state.base;
       const value = source[prop];
 
       // Fast path: primitives and methods
       if (typeof value !== "object" || value === null) {
         // Wrap array mutating methods with caching
         if (isArray && typeof value === "function" && ARRAY_METHODS.has(prop as string)) {
-          // Check cache first
-          let methods = methodCache.get(state);
-          if (!methods) {
-            methods = new Map();
-            methodCache.set(state, methods);
-          }
+          // Optimized caching: avoid double Map lookup
+          const methods = methodCache.get(state) ?? (() => {
+            const m = new Map();
+            methodCache.set(state, m);
+            return m;
+          })();
 
-          let wrapped = methods.get(prop as string);
-          if (!wrapped) {
-            // Create optimized wrapper that avoids redundant operations
-            wrapped = function (this: any, ...args: any[]) {
-              // Only mark changed if not already modified
-              if (!state.modified) {
-                markChanged(state);
-              }
-              // Apply directly on the copy
-              return state.copy![prop].apply(state.copy, args);
-            };
-            methods.set(prop as string, wrapped);
-          }
+          const cached = methods.get(prop as string);
+          if (cached) return cached;
+
+          // Create optimized wrapper that avoids redundant operations
+          const wrapped = function (this: any, ...args: any[]) {
+            // Only mark changed if not already modified
+            if (!state.modified) {
+              markChanged(state);
+            }
+            // Apply directly on the copy
+            return state.copy![prop].apply(state.copy, args);
+          };
+          methods.set(prop as string, wrapped);
 
           return wrapped;
         }
@@ -98,26 +99,26 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
       if (isDraftable(value)) {
         // immer-inspired optimization: only create draft if value is from base
         // This avoids creating copies for values that were already replaced
-        if (value === peek(state.base, prop)) {
-          // Lazy create child drafts map
-          let children = childDrafts.get(state);
-          if (!children) {
-            children = new Map();
-            childDrafts.set(state, children);
-          }
+        if (value === state.base[prop]) {
+          // Optimized: avoid double Map lookup
+          const children = childDrafts.get(state) ?? (() => {
+            const c = new Map();
+            childDrafts.set(state, c);
+            return c;
+          })();
 
-          // Check cache first
-          let childDraft = children.get(prop);
-          if (!childDraft) {
-            childDraft = createProxy(value, state);
-            children.set(prop, childDraft);
+          const cached = children.get(prop);
+          if (cached) return cached;
 
-            // prepareCopy - ensure parent has a copy before storing child draft
-            if (!state.copy) {
-              state.copy = shallowCopy(state.base);
-            }
-            state.copy[prop] = childDraft;
+          // Create new child draft
+          const childDraft = createProxy(value, state);
+          children.set(prop, childDraft);
+
+          // prepareCopy - ensure parent has a copy before storing child draft
+          if (!state.copy) {
+            state.copy = shallowCopy(state.base);
           }
+          state.copy[prop] = childDraft;
 
           return childDraft;
         }
@@ -129,7 +130,8 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
     },
 
     set(_, prop, value) {
-      const source = latest(state);
+      // Inline latest() for better performance
+      const source = state.copy ?? state.base;
       const current = source[prop];
 
       // Handle nothing symbol - delete the property/element
@@ -191,15 +193,15 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
     },
 
     has(_, prop) {
-      return prop in latest(state);
+      return prop in (state.copy ?? state.base);
     },
 
     ownKeys(_) {
-      return Reflect.ownKeys(latest(state));
+      return Reflect.ownKeys(state.copy ?? state.base);
     },
 
     getOwnPropertyDescriptor(_, prop) {
-      const source = latest(state);
+      const source = state.copy ?? state.base;
       const desc = Reflect.getOwnPropertyDescriptor(source, prop);
       if (desc) {
         // Fast path: preserve array length descriptor
