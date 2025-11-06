@@ -35,6 +35,13 @@ export function latest(state: DraftState): any {
   return state.copy ?? state.base;
 }
 
+// Peek at a property without creating a draft (immer-inspired optimization)
+export function peek(target: any, prop: string | symbol): any {
+  const state = target[DRAFT_STATE];
+  const source = state ? latest(state) : target;
+  return source[prop];
+}
+
 /**
  * Get the original value of a draft
  * Useful for comparisons inside a producer function
@@ -98,8 +105,8 @@ export function current<T>(value: T): T {
 
 export function shallowCopy<T>(base: T): T {
   if (Array.isArray(base)) {
-    // Use Array.from - fastest method for copying large arrays
-    return Array.from(base) as any;
+    // Use Array.prototype.slice.call() - immer's optimized method
+    return Array.prototype.slice.call(base) as any;
   }
   if (base && typeof base === "object") {
     const config = getConfig();

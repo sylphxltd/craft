@@ -15,6 +15,7 @@ import {
   isDraftable,
   latest,
   markChanged,
+  peek,
   shallowCopy,
 } from "./utils";
 import { nothing } from "./nothing";
@@ -102,27 +103,33 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
 
       // If accessing a nested draftable object, wrap it in a proxy
       if (isDraftable(value)) {
-        // Lazy create child drafts map
-        let children = childDrafts.get(state);
-        if (!children) {
-          children = new Map();
-          childDrafts.set(state, children);
-        }
-
-        // Check cache first
-        let childDraft = children.get(prop);
-        if (!childDraft) {
-          childDraft = createProxy(value, state);
-          children.set(prop, childDraft);
-
-          // Store child draft in parent's copy (but don't mark as modified yet)
-          if (!state.copy) {
-            state.copy = shallowCopy(state.base);
+        // immer-inspired optimization: only create draft if value is from base
+        // This avoids creating copies for values that were already replaced
+        if (value === peek(state.base, prop)) {
+          // Lazy create child drafts map
+          let children = childDrafts.get(state);
+          if (!children) {
+            children = new Map();
+            childDrafts.set(state, children);
           }
-          state.copy[prop] = childDraft;
-        }
 
-        return childDraft;
+          // Check cache first
+          let childDraft = children.get(prop);
+          if (!childDraft) {
+            childDraft = createProxy(value, state);
+            children.set(prop, childDraft);
+
+            // prepareCopy - ensure parent has a copy before storing child draft
+            if (!state.copy) {
+              state.copy = shallowCopy(state.base);
+            }
+            state.copy[prop] = childDraft;
+          }
+
+          return childDraft;
+        }
+        // Value was already replaced, return it directly
+        return value;
       }
 
       return value;
