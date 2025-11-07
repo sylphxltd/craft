@@ -8,7 +8,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@sylphx/craft?style=flat-square)](https://bundlephobia.com/package/@sylphx/craft)
 [![license](https://img.shields.io/npm/l/@sylphx/craft.svg?style=flat-square)](https://github.com/sylphxltd/craft/blob/main/LICENSE)
 
-**1.4-35x faster than immer** • **2.9 KB gzipped** • **Zero dependencies** • **100% Type-safe**
+**1.4-35x faster than immer** • **4.6 KB gzipped** • **Zero dependencies** • **100% Type-safe**
 
 </div>
 
@@ -27,7 +27,7 @@ Craft is a **high-performance** TypeScript library that makes working with immut
 - 🔥 **Up to 35x faster** on large Set operations
 - ⚡ **24x faster** applying JSON patches
 - 💨 **3-6x faster** on Map/Set mutations
-- 📦 **Only 2.9 KB gzipped** - 39% smaller than immer
+- 📦 **Only 4.6 KB gzipped** - 65% smaller than immer (13 KB)
 
 ### **Developer Experience**
 - 🎯 **Type Safe** - Full TypeScript support with perfect inference
@@ -350,6 +350,99 @@ const draft = castDraft(immutableState);
 const immutable = castImmutable(mutableState);
 ```
 
+### Debugging Utilities ⚡ NEW
+
+Craft provides comprehensive debugging tools for development:
+
+#### `inspectDraft(value)`
+
+Get detailed information about a draft's internal state:
+
+```typescript
+import { craft, inspectDraft } from "@sylphx/craft";
+
+craft(state, (draft) => {
+  draft.count++;
+
+  const inspection = inspectDraft(draft);
+  console.log(inspection);
+  // {
+  //   isDraft: true,
+  //   isModified: true,
+  //   type: "object",
+  //   depth: 0,
+  //   childDraftCount: 0,
+  //   ...
+  // }
+});
+```
+
+#### `visualizeDraft(value, label?)`
+
+Log the structure of a draft tree:
+
+```typescript
+import { craft, visualizeDraft } from "@sylphx/craft";
+
+craft(state, (draft) => {
+  draft.user.name = "Bob";
+  visualizeDraft(draft, "State after update");
+  // Logs detailed tree structure with metadata
+});
+```
+
+#### `assertDraft(value)` / `assertNotDraft(value)`
+
+Assert that a value is (or isn't) a draft:
+
+```typescript
+import { craft, assertDraft, assertNotDraft } from "@sylphx/craft";
+
+craft(state, (draft) => {
+  assertDraft(draft); // OK
+  assertDraft(state); // Throws error!
+});
+
+const result = craft(state, draft => draft.count++);
+assertNotDraft(result); // OK - finalized result
+```
+
+#### `getDraftTreeSummary(value)`
+
+Get a summary of all drafts in a tree:
+
+```typescript
+import { craft, getDraftTreeSummary } from "@sylphx/craft";
+
+craft(state, (draft) => {
+  draft.users[0].name = "Alice";
+  draft.users[1].name = "Bob";
+
+  const summary = getDraftTreeSummary(draft);
+  console.log(summary);
+  // { totalDrafts: 3, modifiedDrafts: 3, maxDepth: 2 }
+});
+```
+
+#### `enableDebugMode(config?)` / `disableDebugMode()`
+
+Enable global debug mode:
+
+```typescript
+import { enableDebugMode } from "@sylphx/craft";
+
+enableDebugMode({
+  enabled: true,
+  logChanges: true,
+  trackChanges: true,
+});
+```
+
+**More debugging utilities:**
+- `describeDraft(value)` - Get human-readable description
+- `getDebugConfig()` - Get current debug configuration
+- `isDebugEnabled()` - Check if debug mode is enabled
+
 ### Configuration
 
 #### `setAutoFreeze(enabled)`
@@ -372,6 +465,41 @@ import { setUseStrictShallowCopy } from "@sylphx/craft";
 
 setUseStrictShallowCopy(true);
 ```
+
+#### `setCustomShallowCopy(fn)`
+
+Provide custom shallow copy logic for special object types:
+
+```typescript
+import { setCustomShallowCopy } from "@sylphx/craft";
+
+class CustomClass {
+  constructor(public id: number, public data: string) {}
+  clone(): CustomClass {
+    return new CustomClass(this.id, this.data);
+  }
+}
+
+setCustomShallowCopy((value, defaultCopy) => {
+  // Handle special types with custom cloning
+  if (value instanceof CustomClass) {
+    return value.clone();
+  }
+  // Fall back to default shallow copy
+  return defaultCopy(value);
+});
+
+// Now CustomClass instances will use .clone() method
+const nextState = craft({ obj: new CustomClass(1, "test") }, draft => {
+  draft.obj.data = "updated"; // Uses custom clone
+});
+```
+
+**Features**:
+- Zero overhead when not configured
+- Flexible callback interface
+- Complete control over cloning behavior
+- Useful for class instances, special objects, etc.
 
 ### Utilities
 
@@ -492,6 +620,8 @@ Craft is immer, but **better in every way**:
 | **Map/Set Support** | **✓ 3-35x faster** | ✓ Full support |
 | **JSON Patches** | **✓ 1.6-24x faster** | ✓ RFC 6902 |
 | **Composition** | **Rich functional API** | Basic |
+| **Custom Shallow Copy** | **✓ Advanced API** | ❌ No |
+| **Debugging Tools** | **✓ 9 utilities** | Basic |
 | **Dependencies** | **Zero** | Multiple |
 
 **Why settle for good when you can have great?**

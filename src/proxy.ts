@@ -23,6 +23,9 @@ import {
 // Fast path checks
 const ARRAY_METHODS = new Set(["push", "pop", "shift", "unshift", "splice", "sort", "reverse"]);
 
+// RRB-tree threshold for very large arrays
+const RRB_TREE_THRESHOLD = 1000;
+
 export function createProxy(base: any, parent: DraftState | null = null): any {
   // Fast path: return non-draftable values as-is
   if (!isDraftable(base)) {
@@ -38,6 +41,14 @@ export function createProxy(base: any, parent: DraftState | null = null): any {
   }
 
   const isArray = Array.isArray(base);
+
+  // RRB-tree disabled: conversion overhead (O(n) to/from RRB) dominates
+  // any performance gain from O(log n) operations for typical craft() usage
+  // See analysis-rrb-performance.md for details
+  // if (isArray && base.length >= RRB_TREE_THRESHOLD) {
+  //   const { createRRBArrayProxy } = require("./rrb-array-proxy");
+  //   return createRRBArrayProxy(base, parent);
+  // }
 
   const state: DraftState = {
     base,

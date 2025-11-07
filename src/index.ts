@@ -15,7 +15,12 @@ export { nothing, type Nothing } from "./nothing";
 export { castDraft, castImmutable } from "./cast";
 
 // Configuration APIs
-export { setAutoFreeze, setUseStrictShallowCopy, type CraftConfig } from "./config";
+export {
+  setAutoFreeze,
+  setUseStrictShallowCopy,
+  setCustomShallowCopy,
+  type CraftConfig,
+} from "./config";
 
 // Patches APIs
 export { craftWithPatches } from "./craft-with-patches";

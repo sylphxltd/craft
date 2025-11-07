@@ -130,7 +130,7 @@ export function current<T>(value: T): T {
   return freeze(result, true);
 }
 
-export function shallowCopy<T>(base: T): T {
+function defaultShallowCopy<T>(base: T): T {
   if (Array.isArray(base)) {
     // Direct slice() is faster than .call() indirection
     return base.slice() as any;
@@ -148,6 +148,17 @@ export function shallowCopy<T>(base: T): T {
     return { ...base } as T;
   }
   return base;
+}
+
+export function shallowCopy<T>(base: T): T {
+  const config = getConfig();
+
+  // Use custom shallow copy if provided
+  if (config.customShallowCopy) {
+    return config.customShallowCopy(base, defaultShallowCopy);
+  }
+
+  return defaultShallowCopy(base);
 }
 
 export function markChanged(state: DraftState): void {
@@ -179,6 +190,9 @@ export function freeze<T>(obj: T, deep = false): T {
   return obj;
 }
 
+// Large array threshold - use optimized bulk operations for arrays >= this size
+const LARGE_ARRAY_THRESHOLD = 500;
+
 export function finalize(state: DraftState, autoFreeze?: boolean): any {
   // immer-inspired: prevent duplicate finalization
   if (state.finalized) {
@@ -204,8 +218,20 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
   // Mark as finalized before processing
   state.finalized = true;
 
+  // Check if this is an RRB array proxy
+  if ((state as any).getRRB) {
+    const { finalizeRRBArray } = require("./rrb-array-proxy");
+    const result = finalizeRRBArray(state);
+    return shouldFreeze ? freeze(result, false) : result;
+  }
+
   const result = state.copy!;
   const isArray = Array.isArray(result);
+
+  // Optimized path for large arrays
+  if (isArray && result.length >= LARGE_ARRAY_THRESHOLD) {
+    return finalizeLargeArray(result, shouldFreeze);
+  }
 
   // Optimized path for arrays
   if (isArray) {
@@ -318,6 +344,89 @@ export function finalize(state: DraftState, autoFreeze?: boolean): any {
   }
 
   return result;
+}
+
+/**
+ * Optimized finalization for large arrays (>= 500 items)
+ * Uses bulk operations to minimize overhead
+ */
+function finalizeLargeArray(result: any[], shouldFreeze: boolean): any[] {
+  const length = result.length;
+
+  // First pass: count operations needed
+  let nothingCount = 0;
+  let draftCount = 0;
+
+  for (let i = 0; i < length; i++) {
+    const value = result[i];
+    if (value === nothing) {
+      nothingCount++;
+    } else if (isDraft(value) || getMapState(value) || getSetState(value)) {
+      draftCount++;
+    }
+  }
+
+  // Fast path: no nothing, no drafts - just freeze
+  if (nothingCount === 0 && draftCount === 0) {
+    return shouldFreeze ? freeze(result, false) : result;
+  }
+
+  // Handle nothing symbols with filtering
+  if (nothingCount > 0) {
+    const filtered: any[] = new Array(length - nothingCount);
+    let writeIndex = 0;
+
+    for (let i = 0; i < length; i++) {
+      const value = result[i];
+      if (value === nothing) continue;
+
+      // Finalize drafts/proxies
+      const mapState = getMapState(value);
+      if (mapState) {
+        filtered[writeIndex++] = finalizeMap(mapState);
+        continue;
+      }
+      const setState = getSetState(value);
+      if (setState) {
+        filtered[writeIndex++] = finalizeSet(setState);
+        continue;
+      }
+      if (isDraft(value)) {
+        const childState = getState(value);
+        filtered[writeIndex++] = childState ? finalize(childState, shouldFreeze) : value;
+      } else {
+        filtered[writeIndex++] = value;
+      }
+    }
+
+    return shouldFreeze ? freeze(filtered, false) : filtered;
+  }
+
+  // Only drafts - finalize in place
+  if (draftCount > 0) {
+    for (let i = 0; i < length; i++) {
+      const value = result[i];
+
+      const mapState = getMapState(value);
+      if (mapState) {
+        result[i] = finalizeMap(mapState);
+        continue;
+      }
+      const setState = getSetState(value);
+      if (setState) {
+        result[i] = finalizeSet(setState);
+        continue;
+      }
+      if (isDraft(value)) {
+        const childState = getState(value);
+        if (childState) {
+          result[i] = finalize(childState, shouldFreeze);
+        }
+      }
+    }
+  }
+
+  return shouldFreeze ? freeze(result, false) : result;
 }
 
 function each(obj: any, callback: (key: string | number, value: any) => void): void {

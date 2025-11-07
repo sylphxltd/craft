@@ -10,6 +10,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./debug": {
+      "import": "./dist/index-debug.js",
+      "types": "./dist/index-debug.d.ts"
     }
   },
   "files": ["dist"],

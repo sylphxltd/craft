@@ -14,6 +14,13 @@ export interface CraftConfig {
    * @default false
    */
   useStrictShallowCopy: boolean;
+
+  /**
+   * Custom shallow copy function for advanced use cases
+   * Allows users to provide custom cloning logic for special types
+   * @default undefined
+   */
+  customShallowCopy?: (value: any, defaultCopy: (v: any) => any) => any;
 }
 
 const defaultConfig: CraftConfig = {
@@ -62,6 +69,30 @@ export function setAutoFreeze(enabled: boolean): void {
  */
 export function setUseStrictShallowCopy(enabled: boolean): void {
   config.useStrictShallowCopy = enabled;
+}
+
+/**
+ * Set custom shallow copy function
+ *
+ * @param fn - Custom shallow copy function that receives the value and default copy function
+ *
+ * @example
+ * ```ts
+ * import { setCustomShallowCopy } from "@sylphx/craft";
+ *
+ * // Custom cloning for special class instances
+ * setCustomShallowCopy((value, defaultCopy) => {
+ *   if (value instanceof MyClass) {
+ *     return value.clone();
+ *   }
+ *   return defaultCopy(value);
+ * });
+ * ```
+ */
+export function setCustomShallowCopy(
+  fn: ((value: any, defaultCopy: (v: any) => any) => any) | undefined,
+): void {
+  config.customShallowCopy = fn;
 }
 
 /**
