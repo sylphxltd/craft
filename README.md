@@ -694,7 +694,7 @@ If Craft makes your life easier, give it a ⭐ on GitHub!
 
 ## 📄 License
 
-MIT © SylphX Ltd
+MIT © [Sylphx](https://sylphx.com)
 
 ## 🙏 Credits
 
@@ -708,4 +708,8 @@ Built with ❤️ for developers who refuse to compromise on performance.
   <strong>Stop settling for slow. Choose Craft.</strong>
   <br>
   <sub>The fastest immutable state library for TypeScript</sub>
+  <br><br>
+  <a href="https://sylphx.com">sylphx.com</a> •
+  <a href="https://x.com/SylphxAI">@SylphxAI</a> •
+  <a href="mailto:hi@sylphx.com">hi@sylphx.com</a>
 </p>
