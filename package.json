@@ -41,7 +41,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sylphxltd/craft.git"
+    "url": "git+https://github.com/SylphxAI/craft.git"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
